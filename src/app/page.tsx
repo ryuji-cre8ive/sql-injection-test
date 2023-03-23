@@ -1,26 +1,35 @@
 'use client'
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
-import styles from './page.module.css'
 import React from 'react'
-import axios from 'axios'
 
-const inter = Inter({ subsets: ['latin'] })
 
 export default function Home() {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
 
-  const handleSubmit = (event: any) => {
+  const handleSubmit = async(event: any) => {
     event.preventDefault();
     console.log(`Email: ${email}, Password: ${password}`);
-    const params = {
-      email,
-      password
+    const headers = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
     }
-    axios.post('/api/hello', params).then((res) => {
-      console.log(res)
+    const body = JSON.stringify({
+      email: email,
+      password: password
     })
+    try {
+      const res = await fetch('/api/hello', {method: 'POST', headers, body})
+      const result = await res.json()
+      console.log('result', result)
+      if (result.status == 200) {
+        alert('ok!\n' + result.message)
+      } else {
+        alert(result.message)
+      }
+    }catch(err) {
+      console.error("error details: ",err)
+    }
+    
   };
   return (
     <form onSubmit={handleSubmit}>

@@ -1,47 +1,31 @@
-import mysql from 'mysql';
+import mysql from 'serverless-mysql';
+import { NextResponse } from 'next/server';
 
-
-
-export async function GET(request: Request) {
-  return new Response('Hello, Next.js!')
-}
-
-export async function POST(request: any) {
-  const connection = mysql.createConnection({
+const db = mysql({
+  config: {
     host: '127.0.0.1',
-    user: 'root',
-    password: 'my-secret-pw',
-    database: 'mydatabase'
-  });
+    user: process.env.DATABASE_USER || 'root',
+    password: process.env.DATABASE_PASSWORD || 'my-secret-pw',
+    database: process.env.DATABASE_NAME || 'mydatabase'
+  }
+});
+
+export async function POST(req: Request) {
+  await db.connect()
+  let result: any
+  try{
+    const res = await req.json()
+    console.log('res', res)
+    const query = `SELECT * FROM users WHERE email = '${res.email}' AND password = '${res.password}'`;
+    result = await db.query(query)
+  db.end()
+  }catch(err) {
+    console.error('error details: ', err)
+  }
   
-  connection.connect(async function(err) {
-    if (err) {
-      console.error('error connecting: ' + err.stack);
-      return new Response('Error connecting to database');
-    }
-
-    console.log('connected as id ' + connection.threadId);
-
-    const query = `SELECT * FROM users WHERE email = '${request.email}'`;
-    connection.query(query, async function (error, results, fields) {
-      if (error) {
-        console.error(error);
-        return new Response('Error querying database');
-      }
-
-      if (results.length === 0) {
-        return new Response('User not found');
-      }
-
-      const user = results[0];
-
-      if (user.password !== request.password) {
-        return new Response('Incorrect password');
-      }
-
-      return new Response('Logged in successfully');
-    });
-  });
-
-  return new Response('Connecting to database');
+  if (result.length > 0) {
+    return NextResponse.json({ status: 200, message: 'Logged in successfully' });
+  } else {
+    return NextResponse.json({ status: 401, message: 'Email or password is incorrect' });
+  }
 }
